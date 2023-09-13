@@ -1,0 +1,6 @@
+[submodule "ekinsadb-review-front"]
+	path = ekinsadb-review-front
+	url = https://github.com/nerzur/ekinsadb-review-front
+[submodule "ekinsadb-review"]
+	path = ekinsadb-review
+	url = https://github.com/nerzur/ekinsadb-review.git
