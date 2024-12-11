@@ -1,0 +1,48 @@
+name: Deploy to master
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ekinsadb-review-fullstack-master
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Send initial message to Telegram
+        run: |
+          IMSG="⚠⚠ **UPDATING APP:** ekinsadb-review-fullstack. ⚠⚠"
+          IMSG_ENCODED=$(echo "$IMSG" | jq -sRr @uri)
+          TELEGRAM_TOKEN_ID="${{ secrets.TELEGRAM_TOKEN_ID }}"
+          TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+          TELEGRAM_THREAD_ID="${{ secrets.TELEGRAM_THREAD_ID }}"
+          wget "https://api.telegram.org/bot$TELEGRAM_TOKEN_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&message_thread_id=$TELEGRAM_THREAD_ID&text=$IMSG_ENCODED&parse_mode=Markdown"
+
+      - name: Update docker containers
+        run: |
+          docker compose down
+          docker compose up -d
+#          echo "Repositorio: ${{ github.repository }}"
+#          echo "ID del run: ${{ github.run_id }}"
+#          echo "Evento: ${{ github.event_name }}"
+#          echo $USER
+#          echo $PWD
+
+      - name: Send final or error message to Telegram
+        if: always()
+        run: |
+          TELEGRAM_TOKEN_ID="${{ secrets.TELEGRAM_TOKEN_ID }}"
+          TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+          TELEGRAM_THREAD_ID="${{ secrets.TELEGRAM_THREAD_ID }}"
+          if [ "${{ job.status }}" == "success" ]; then
+                    FMSG="✅✅ **DEPLOY FINISHED:** ekinsadb-review-fullstack is ready! ✅✅"
+                  else
+                    FMSG="**❌❌ An error has been occurred when deploy ekinsadb-review-fullstack, more details in ${{ github.run_url }}.** ❌❌"
+                  fi
+          FMSG_ENCODED=$(echo "$FMSG" | jq -sRr @uri)
+          wget "https://api.telegram.org/bot$TELEGRAM_TOKEN_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&message_thread_id=$TELEGRAM_THREAD_ID&text=$FMSG_ENCODED&parse_mode=Markdown"
