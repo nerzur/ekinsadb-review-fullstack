@@ -1,32 +1,107 @@
-version: '1.0.1'
 name: enkindb-review
+
 services:
-  ekinsadb-review:
-    container_name: ekinsadb-review
-    hostname: ekinsadb-review
+  ekinsadb-review-admin-service:
+    restart: unless-stopped
+    container_name: ekinsadb-review-admin-service
+    hostname: ekinsadb-review-admin-service
+    depends_on:
+      - ekinsadb-review-registry-service
     build:
-      context: ekinsadb-review
-      dockerfile: Dockerfile
-    image: ekinsadb-review:latest
+      context: ekinsadb-review/admin-service
+      dockerfile: DockerfileDev
+    image: ${admin_service_image}
     ports:
-      - "8091:8091"
+      - "${admin_service_port}:8086"
     networks:
-      - public-network
+      - ekinsadb-review-network
+
+  ekinsadb-review-api-gateway-service:
+    restart: unless-stopped
+    container_name: ekinsadb-review-api-gateway-service
+    hostname: ekinsadb-review-api-gateway-service
+    depends_on:
+      - ekinsadb-review-registry-service
+      - ekinsadb-review-admin-service
+    build:
+      context: ekinsadb-review/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://ekinsadb-review-registry-service:8761/eureka/
+    image: ${api_gateway_service_image}
+    ports:
+      - "${api_gateway_service_port}:8090"
+    networks:
+      - ekinsadb-review-network
+
+  ekinsadb-review-service:
+    restart: unless-stopped
+    container_name: ekinsadb-review-service
+    hostname: ekinsadb-review-service
+    depends_on:
+      - ekinsadb-review-registry-service
+      - ekinsadb-review-admin-service
+      - ekinsadb-review-api-gateway-service
+    build:
+      context: ekinsadb-review/ekinsadb-review-service
+      dockerfile: Dockerfile
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://ekinsadb-review-registry-service:8761/eureka/
+    image: ${ekinsadb_review_service_image}
+#    ports:
+#      - "16004:8080"
+    networks:
+      - ekinsadb-review-network
+
+  ekinsadb-review-user-service:
+    restart: unless-stopped
+    container_name: ekinsadb-review-user-service
+    hostname: ekinsadb-review-user-service
+    depends_on:
+      - ekinsadb-review-registry-service
+      - ekinsadb-review-admin-service
+      - ekinsadb-review-api-gateway-service
+    build:
+      context: ekinsadb-review/user-service
+      dockerfile: Dockerfile
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://ekinsadb-review-registry-service:8761/eureka/
+    image: ${user_service_image}
+    networks:
+      - ekinsadb-review-network
+
+  ekinsadb-review-registry-service:
+    restart: unless-stopped
+    container_name: ekinsadb-review-registry-service
+    hostname: ekinsadb-review-registry-service
+    build:
+      context: ekinsadb-review/registry-service
+      dockerfile: Dockerfile
+    image: ${registry_service_image}
+#    ports:
+#      - "16003:8761"
+    networks:
+      - ekinsadb-review-network
 
   ekinsadb-review-front:
-    depends_on: [
-      ekinsadb-review
-    ]
+    restart: unless-stopped
+    depends_on:
+      - ekinsadb-review-registry-service
+      - ekinsadb-review-admin-service
+      - ekinsadb-review-api-gateway-service
+      - ekinsadb-review-service
+      - ekinsadb-review-user-service
     container_name: ekinsadb-review-front
     hostname: ekinsadb-review-front
     build:
-      context: ekinsadb-review-front
+      context: ekindb-review-front2
       dockerfile: Dockerfile
-    image: ekinsadb-review-front:latest
+    image: ${ekinsadb_review_front_image}
     ports:
-      - "80:80"
+      - "${ekinsadb_review_front_port}:80"
     networks:
-      - public-network
+      - ekinsadb-review-network
 
 networks:
-  public-network:
+  ekinsadb-review-network:
+    name: ekinsadb-review-network
