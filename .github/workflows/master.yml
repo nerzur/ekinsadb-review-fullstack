@@ -13,6 +13,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Initialize and update submodules
+        run: |
+          git submodule update --init --recursive
 
       - name: Send initial message to Telegram
         run: |
